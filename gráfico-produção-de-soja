@@ -1,0 +1,65 @@
+#Importando as bibliotecas necessárias
+
+import folium
+import geojson
+import pandas as pd
+import plotly.express as px
+import json
+from urllib.request import urlopen
+import plotly as plt
+
+
+#Importando mapa do google
+
+mapa = folium.Map(location = [-13.6599529,-69.6827802])
+mapa
+
+#Plotando o mapa com visão de satelite.
+folium.Map(location = [-13.6599529,-69.6827802], tiles = 'Stamen Terrain', zoom_start = 4)
+
+#exibindo coordenadas de tatitude e longitude no evento de click no mapa
+#Ajuda a encontrar a latitude para futuras coordenadas
+
+mapa.add_child(folium.LatLngPopup())
+
+#Importando df siglas dos estados
+df = pd.read_csv("dadosgovbr.csv",sep = ';', encoding="latin-1")
+df.UF.unique()
+
+#Instanciando o GeoJson para atrelar as informações de estados aos dados
+
+with urlopen('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson') as response:
+ Brazil = json.load(response) 
+Brazil
+
+#Amarrando as informções de geolocalização dos estados para serem plotados nos graficos
+state_id_map = {}
+for feature in Brazil ['features']:
+ feature['id'] = feature['properties']['name']
+ state_id_map[feature['properties']['sigla']] = feature['id']
+ 
+ #Importando os dados referente a produção de soja.
+
+soybean = pd.read_csv('https://raw.githubusercontent.com/nayanemaia/Dataset_Soja/main/soja%20sidra.csv')
+print(soybean)
+
+#Gerando o gráfico.
+
+fig = px.choropleth(
+ soybean, #soybean database
+ locations = "Estado", #define the limits on the map/geography
+ geojson = Brazil, #shape information
+ color = "Produção", #defining the color of the scale through the database
+ hover_name = "Estado", #the information in the box
+ hover_data =["Produção","Longitude","Latitude"],
+ title = "Produtividade da soja (Toneladas)", #title of the map
+ animation_frame = "ano" #creating the application based on the year
+)
+fig.update_geos(fitbounds = "locations", visible = False)
+fig.show()
+
+
+#Salvando o resultado em um arquivo HTML
+
+plt.offline.plot(fig, filename = 'map1.html')
+
